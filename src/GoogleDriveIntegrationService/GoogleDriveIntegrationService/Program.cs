@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Google.Apis.Download;
 
 
 namespace GoogleDriveIntegrationService
@@ -49,8 +50,8 @@ namespace GoogleDriveIntegrationService
             listRequest.Fields = "nextPageToken, files(id, name)";
 
             // List files.
-            IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute()
-                .Files;
+            IList<Google.Apis.Drive.v3.Data.File> files = listRequest.Execute().Files;
+
             Console.WriteLine("Files:");
             if (files != null && files.Count > 0)
             {
@@ -64,32 +65,88 @@ namespace GoogleDriveIntegrationService
                 Console.WriteLine("No files found.");
             }
 
-            CreateDirectory(service);
+            // CreateDirectory(service);
+            UploadFile(service);
+            // DownloadFile(service);
 
             Console.Read();
-
         }
 
-        public static void CreateDirectory(DriveService _service)
+        public static void CreateDirectory(DriveService service)
         {
-            Google.Apis.Drive.v3.Data.File NewDirectory = null;
+            Google.Apis.Drive.v3.Data.File newDirectory = null;
 
             // Create metaData for a new Directory
-            Google.Apis.Drive.v3.Data.File body = new Google.Apis.Drive.v3.Data.File();
-            body.Name = "test";
-            body.Description = "description";
-            body.MimeType = "application/vnd.google-apps.folder";
-            // body.Parents = new List<string>() { "te"};
-                //new List() { new ParentReference() { Id = _parent } };
+            Google.Apis.Drive.v3.Data.File body = new Google.Apis.Drive.v3.Data.File
+            {
+                Name = "test",
+                Description = "description",
+                MimeType = "application/vnd.google-apps.folder"
+            };
+
             try
             {
-                FilesResource.CreateRequest request = _service.Files.Create(body);
-                NewDirectory = request.Execute();
+                FilesResource.CreateRequest request = service.Files.Create(body);
+                request.Execute();
             }
             catch (Exception e)
             {
                 Console.WriteLine("An error occurred: " + e.Message);
             }
+        }
+
+        public static void UploadFile(DriveService driveService)
+        {
+            string fileName = "input-data.json";
+
+            var fileMetadata = new Google.Apis.Drive.v3.Data.File
+            {
+                Name = fileName
+            };
+
+            FilesResource.CreateMediaUpload request;
+            using (var stream = new FileStream(fileName, FileMode.Open))
+            {
+                request = driveService.Files.Create(
+                    fileMetadata, stream, "application/json");
+                request.Fields = "id";
+                request.Upload();
+            }
+
+            var file = request.ResponseBody;
+            Console.WriteLine("File ID: " + file.Id);
+        }
+
+        public static void DownloadFile(DriveService driveService)
+        {
+            var fileId = "1OASA38JFCgMud7L4p4cHno6N6gUZ0vhE";
+            var request = driveService.Files.Get(fileId);
+            var stream = new System.IO.MemoryStream();
+
+            request.MediaDownloader.ProgressChanged +=
+                (IDownloadProgress progress) =>
+                {
+                    switch (progress.Status)
+                    {
+                        case DownloadStatus.Downloading:
+                        {
+                            Console.WriteLine(progress.BytesDownloaded);
+                            break;
+                        }
+                        case DownloadStatus.Completed:
+                        {
+                            Console.WriteLine("Download complete.");
+                            break;
+                        }
+                        case DownloadStatus.Failed:
+                        {
+                            Console.WriteLine("Download failed.");
+                            break;
+                        }
+                    }
+                };
+
+            request.Download(stream);
         }
     }
 }
