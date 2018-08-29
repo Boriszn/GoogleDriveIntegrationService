@@ -1,0 +1,5 @@
+src/GoogleDriveIntegrationService/.vs/
+.vs/GoogleDriveIntegrationService/v15/
+src/GoogleDriveIntegrationService/GoogleDriveIntegrationService/bin/
+src/GoogleDriveIntegrationService/GoogleDriveIntegrationService/obj/
+src/GoogleDriveIntegrationService/GoogleDriveIntegrationService/credentials.json
